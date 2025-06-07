@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';  // <-- импорт для пользователя
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HistoryScreen extends StatelessWidget {
   @override
@@ -9,10 +9,11 @@ class HistoryScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      // Пользователь не авторизован — можно показать сообщение или перенаправить
       return Scaffold(
         appBar: AppBar(title: Text('История переводов')),
-        body: Center(child: Text('Пожалуйста, войдите в аккаунт, чтобы видеть историю')),
+        body: Center(
+          child: Text('Пожалуйста, войдите в аккаунт, чтобы видеть историю'),
+        ),
       );
     }
 
@@ -21,12 +22,11 @@ class HistoryScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('translations')
-            .where('userId', isEqualTo: user.uid)  // фильтр по userId
+            .where('userId', isEqualTo: user.uid)
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print('❌ Firestore ошибка: ${snapshot.error}');
             return Center(child: Text('Ошибка загрузки данных'));
           }
 
@@ -35,7 +35,6 @@ class HistoryScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            print('ℹ️ Нет данных в истории');
             return Center(child: Text('История пуста'));
           }
 
@@ -55,12 +54,61 @@ class HistoryScreen extends StatelessWidget {
                     ? DateFormat('dd.MM.yyyy HH:mm').format(timestamp.toDate())
                     : 'Без времени';
 
-                return ListTile(
-                  title: Text('$original → $translated'),
-                  subtitle: Text('[$from → $to] • $formattedTime'),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            original,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            translated,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '$from → $to',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                formattedTime,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 );
               } catch (e) {
-                print('❌ Ошибка при обработке документа: $e');
                 return ListTile(
                   title: Text('Ошибка при отображении'),
                   subtitle: Text('Документ повреждён'),
